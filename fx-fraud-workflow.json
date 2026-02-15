@@ -1,0 +1,377 @@
+{
+  "name": "My workflow 5",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "f70f4aa5-56d2-4c11-af23-112764736b15",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -80,
+        -16
+      ],
+      "id": "09a6cca7-b8af-4bd0-b0a0-0524cc7b3cee",
+      "name": "Webhook",
+      "webhookId": "f70f4aa5-56d2-4c11-af23-112764736b15"
+    },
+    {
+      "parameters": {
+        "url": "https://api.exchangerate-api.com/v4/latest/INR",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        336,
+        -16
+      ],
+      "id": "0aad474e-5934-4bcf-85e2-d57acc9ead2b",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "3c129d35-d6e4-4f8e-9940-11abc4ae393d",
+              "name": "marketRate",
+              "value": "={{ Number($json.rates[$node[\"Webhook\"].json.body.toCurrency]) }}\n",
+              "type": "number"
+            },
+            {
+              "id": "27b66dbb-db15-4761-a511-6f92463eb946",
+              "name": "diff",
+              "value": "={{ Math.abs(Number($node[\"Webhook\"].json.body.userRate) - Number($json.rates[$node[\"Webhook\"].json.body.toCurrency])) }}\n",
+              "type": "number"
+            },
+            {
+              "id": "cd0b49ce-59f4-48b7-8d14-c507120c1102",
+              "name": "status",
+              "value": "={{ Math.abs(Number($node[\"Webhook\"].json.body.userRate) - Number($json.rates[$node[\"Webhook\"].json.body.toCurrency])) > 0.05 ? \"FRAUD\" : \"OK\" }}\n",
+              "type": "string"
+            },
+            {
+              "id": "3be9ed59-73ef-4455-aff0-84cbbae0b02d",
+              "name": "from_currency",
+              "value": "={{$node[\"Webhook\"].json.body.fromCurrency.slice(0,3)}}\n",
+              "type": "string"
+            },
+            {
+              "id": "cb501308-38cb-4321-9100-041356cc2448",
+              "name": "to_currency",
+              "value": "={{$node[\"Webhook\"].json.body.toCurrency.slice(0,3)}}\n",
+              "type": "string"
+            },
+            {
+              "id": "0c28f3b4-f653-4d97-8b89-5a574748034e",
+              "name": "user_rate",
+              "value": "={{$node[\"Webhook\"].json.body.userRate}}\n",
+              "type": "number"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        544,
+        -16
+      ],
+      "id": "3cd9900c-9c7c-4b8d-9235-de1b0f9651fe",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "005e1e1f-caf1-49ce-9158-5f50fd7a7869",
+              "leftValue": "={{ Math.abs($json.userRate - $json.marketRate) }}\n",
+              "rightValue": 0.05,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        752,
+        -16
+      ],
+      "id": "9258140e-1060-4b77-abda-0b4cfab948d1",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "5a4a0712-1aef-44c0-9c84-d2e21a617a7f",
+              "name": "fromCurrency",
+              "value": "={{$json.body.from}}\n",
+              "type": "string"
+            },
+            {
+              "id": "8eb6e14c-0991-4474-a531-70e06efc27a1",
+              "name": "toCurrency",
+              "value": "={{$json.body.to}}\n",
+              "type": "string"
+            },
+            {
+              "id": "c13f6096-ad54-4d48-901a-61217c6cc651",
+              "name": "userRate",
+              "value": "={{$json.body.enteredRate}}\n",
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        128,
+        -16
+      ],
+      "id": "be769099-2c66-4286-8fbb-9d1c265bfcef",
+      "name": "Edit Fields1"
+    },
+    {
+      "parameters": {
+        "table": {
+          "__rl": true,
+          "value": "fx_logs",
+          "mode": "list",
+          "cachedResultName": "fx_logs"
+        },
+        "dataMode": "defineBelow",
+        "valuesToSend": {
+          "values": [
+            {
+              "column": "from_currency",
+              "value": "={{ $json.fromCurrency }}"
+            },
+            {
+              "column": "to_currency",
+              "value": "={{ $json.toCurrency }}"
+            },
+            {
+              "column": "user_rate",
+              "value": "={{ $json.userRate }}"
+            },
+            {
+              "column": "market_rate",
+              "value": "={{ $json.marketRate }}"
+            },
+            {
+              "column": "diff",
+              "value": "={{ $json.diff }}"
+            },
+            {
+              "column": "status",
+              "value": "={{ $json.status }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.5,
+      "position": [
+        960,
+        -112
+      ],
+      "id": "b20fcee8-6cba-4882-8ecd-726e2c4bf335",
+      "name": "Insert rows in a table",
+      "credentials": {
+        "mySql": {
+          "id": "4RjAXMVdVYFQEhkW",
+          "name": "MySQL account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "table": {
+          "__rl": true,
+          "value": "fx_logs",
+          "mode": "list",
+          "cachedResultName": "fx_logs"
+        },
+        "dataMode": "defineBelow",
+        "valuesToSend": {
+          "values": [
+            {
+              "column": "from_currency",
+              "value": "={{ $json.from_currency }}"
+            },
+            {
+              "column": "to_currency",
+              "value": "={{ $json.to_currency }}"
+            },
+            {
+              "column": "user_rate",
+              "value": "={{ $json.user_rate }}"
+            },
+            {
+              "column": "market_rate",
+              "value": "={{ $json.marketRate }}"
+            },
+            {
+              "column": "diff",
+              "value": "={{ $json.diff }}"
+            },
+            {
+              "column": "status",
+              "value": "={{ $json.status }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.5,
+      "position": [
+        960,
+        80
+      ],
+      "id": "af67f472-45b5-46c9-9a97-42d082b0baa4",
+      "name": "Insert rows in a table1",
+      "credentials": {
+        "mySql": {
+          "id": "4RjAXMVdVYFQEhkW",
+          "name": "MySQL account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "mishravikash790@gmail.com",
+        "subject": "🚨 FX FRAUD ALERT",
+        "emailType": "text",
+        "message": "=Fraud detected!  From: {{$node[\"Webhook\"].json.body.fromCurrency}} To: {{$node[\"Webhook\"].json.body.toCurrency}}  User Rate: {{$node[\"Webhook\"].json.body.userRate}} Market Rate: {{$json.marketRate}} Difference: {{$json.diff}}  Status: FRAUD",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1168,
+        -112
+      ],
+      "id": "566b550a-6367-4e69-843f-9a80846648fa",
+      "name": "Send a message",
+      "webhookId": "84d11d15-f860-48e6-a81a-9a46067abc00",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "fIreZb8aFMqnmx2a",
+          "name": "Gmail account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields1": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Insert rows in a table",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Insert rows in a table1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert rows in a table": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "046fb96a-594b-407a-b428-321ee722357b",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "c3364368700157bf3670954bffd68015d9125614a3f70f4dcfd22762cd980448"
+  },
+  "id": "UvpSmCd62BabWAMjSOk4G",
+  "tags": []
+}
